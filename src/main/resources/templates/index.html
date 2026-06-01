@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Small Application for communicating with the database</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #fafafa; color: #333; }
+        h1 { color: #111; border-bottom: 2px solid #333; padding-bottom: 5px; }
+        .section { background: white; border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+        th { background-color: #eee; }
+        .msg { padding: 10px; margin-top: 10px; border: 1px solid #333; font-weight: bold; }
+        .error { background: #ffcccc; color: #cc0000; }
+        .success { background: #ccffcc; color: #006600; }
+        .info { background: #e6f2ff; color: #0044cc; }
+    </style>
+</head>
+<body>
+
+<h1>Small Application for communicating with the database</h1>
+
+<div class="section">
+    <h3>1. Search for a Lecture (string can be a professor's first name or last name (or both), lecture id, lecture topic, room, date...)</h3>
+    <form action="/" method="get">
+        <input type="text" name="searchString" th:value="${searchString}" placeholder="Search...." required>
+        <button type="submit">Search</button>
+        <a href="/" style="color: red; margin-left: 10px;">Reset</a>
+    </form>
+    <table th:if="${lectures != null}">
+        <thead><tr><th>ID</th><th>Topic</th><th>ECTS</th><th>Options</th></tr></thead>
+        <tbody>
+        <tr th:each="lecture : ${lectures}">
+            <td th:text="${lecture.id}"></td>
+            <td th:text="${lecture.topic}"></td>
+            <td th:text="${lecture.ects}"></td>
+            <td><a th:href="@{/participants(lectureId=${lecture.id})}">View Participants</a></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="section">
+    <h3>2. List of participants (can be changed)</h3>
+    <p th:if="${selectedLectureId != null}">Selected Lecture ID: <strong th:text="${selectedLectureId}"></strong></p>
+
+    <table th:if="${participants != null}">
+        <thead><tr><th>Matriculation Number</th><th>Name</th></tr></thead>
+        <tbody>
+        <tr th:each="student : ${participants}">
+            <td th:text="${student.matriculationNumber}"></td>
+            <td th:text="${student.name}"></td>
+        </tr>
+        </tbody>
+    </table>
+    <p th:if="${participants != null and #lists.isEmpty(participants)}" style="color: red;">No participants registered for this course yet.</p>
+
+    <div th:if="${selectedLectureId != null}" style="margin-top: 15px;">
+        <p><strong>Actions for this lecture:</strong></p>
+
+        <form action="/add-participant" method="post" style="margin-bottom: 10px;">
+            <input type="hidden" name="lectureId" th:value="${selectedLectureId}">
+            <select name="searchBy">
+                <option value="matNr">MatriculationNumber</option>
+                <option value="name">Name</option>
+            </select>
+            <input type="text" name="identifier" placeholder="..." required>
+            <button type="submit">Add Student</button>
+        </form>
+        <form action="/remove-participant" method="post" style="margin-bottom: 10px;">
+            <input type="hidden" name="lectureId" th:value="${selectedLectureId}">
+            <select name="removeBy">
+                <option value="matNr">MatriculationNumber</option>
+                <option value="name">Name</option>
+            </select>
+            <input type="text" name="identifier" placeholder="..." required>
+            <button type="submit" style="color: red;">Remove from Course</button>
+        </form>
+
+    </div>
+</div>
+
+<div class="section">
+    <h3>3. What is the connection between A and B?</h3>
+    <form action="/check-connection" method="get">
+        <input type="text" name="personA" th:value="${personA}" placeholder="Person A" required>
+        <input type="text" name="personB" th:value="${personB}" placeholder="Person B" required>
+        <button type="submit">Check Relation</button>
+    </form>
+    <div th:if="${connectionResult != null}" class="msg info">
+        Result for <span th:text="${personA}"></span> &amp; <span th:text="${personB}"></span>:
+        <span th:text="${connectionResult}"></span>
+    </div>
+</div>
+
+<div class="section">
+    <h3>4. Path of A and B</h3>
+    <form action="/find-paths" method="get">
+        <input type="text" name="nodeA" th:value="${nodeA}" placeholder="Start Node" required>
+        <input type="text" name="nodeB" th:value="${nodeB}" placeholder="Target Node" required>
+        <button type="submit">Search Paths</button>
+    </form>
+    <div th:if="${pathsResult != null}" style="margin-top: 10px;">
+        <p th:if="${#lists.isEmpty(pathsResult)}" style="color: red;">No paths found between these nodes!!!!</p>
+        <ul th:if="${!#lists.isEmpty(pathsResult)}">
+            <li th:each="path : ${pathsResult}" th:text="${path}"></li>
+        </ul>
+    </div>
+</div>
+
+<div class="section">
+    <h3>5. Grade a student</h3>
+    <form action="/grade-student" method="post">
+        <input type="text" name="matNr" placeholder="Matriculation Number" required>
+        <input type="text" name="lectureId" placeholder="Lecture ID" required>
+        <input type="text" name="examDate" placeholder="Date (YYYY-MM-DD)" required>
+        <input type="number" name="grade" placeholder="Grade (1-5)" min="1" max="5" required>
+        <button type="submit">Save Grade</button>
+    </form>
+    <div th:if="${gradeMessage != null}" th:class="${gradeSuccess} ? 'msg success' : 'msg error'" th:text="${gradeMessage}"></div>
+</div>
+
+<div class="section">
+    <h3>6. Delete a Student Node</h3>
+    <form action="/delete-student" method="post">
+        <select name="deleteBy">
+            <option value="matNr">Matriculation Number</option>
+            <option value="name">Name</option>
+        </select>
+        <input type="text" name="identifier" placeholder="Value..." required>
+        <input type="text" name="reason" placeholder="Reason for deletion" required style="width: 250px;">
+        <button type="submit" style="color: white; background-color: red;">Delete Student</button>
+    </form>
+    <div th:if="${deleteMessage != null}" class="msg error" th:text="${deleteMessage}"></div>
+</div>
+
+</body>
+</html>
